@@ -1,0 +1,16 @@
+reference:
+  class: File
+  format: edam:format_1929 
+  location: /media/mike/D/vu/chr19/GRCh38_no_alt_plus_hs38d1_analysis_set.fna 
+
+fastq1:
+  class: File
+  format: edam:format_1930
+  location: /media/mike/D/vu/chr19/ERR2122556_1.fastq.gz
+
+fastq2:
+  class: File
+  format: edam:format_1930
+  location: /media/mike/D/vu/chr19/ERR2122556_2.fastq.gz
+
+sample: ERR2122556

@@ -12,28 +12,44 @@ class SamtoolsRun(Job):
         Job.__init__(self,  memory="12G", cores=10, disk="10G")
         self.inputFileName = id
 
-    def writeToPipe(self, fn, fileStore):
+    def writeInputToPipe(self, fn, fileStore):
         with open(self.inputFileName, 'rb') as fi:
             fifo = open(fn, 'wb')
             # FIXME read & write like a stream
             fifo.write(fi.read())
             fifo.close()
 
+    def writeOutputToPipe(self, fin, foutStream, fileStore):
+        with open(fin, 'rb') as fi:
+            while True:
+                data = fi.read()
+                if not data:
+                    break
+                foutStream.write(data)
+
 
     def run(self, fileStore):
         fin = fileStore.getLocalTempFileName()
         os.mkfifo(fin)
+        thIn = threading.Thread(target=self.writeInputToPipe, args=(fin, fileStore,))
+        thIn.start()
 
-        th = threading.Thread(target=self.writeToPipe, args=(fin, fileStore,))
-        th.start()
+        fon = fileStore.getLocalTempFileName()
+        os.mkfifo(fon)
 
-        with open(fin, 'rb') as fi:
-            fon = fileStore.getLocalTempFile()
-            with open(fon, 'wb') as fo:
-                parameters = ['samtools', 'view', '-@', '10', '-b', '-S']
-                subprocess.run(parameters, stdin=fi, stdout=fo)
-                th.join()
-                return fileStore.writeGlobalFile(fon)
+        with fileStore.writeGlobalFileStream() as (foutStream,foutStreamID):
+            thOut = threading.Thread(target=self.writeOutputToPipe, args=(fon, foutStream, fileStore,))
+            thOut.start()
+
+            fi = open(fin, 'rb')
+            fo = open(fon, 'wb')
+            parameters = ['samtools', 'view', '-@', '10', '-b', '-S']
+            subprocess.run(parameters, stdin=fi, stdout=fo)
+            fo.close()
+
+            thIn.join()
+            thOut.join()
+            return foutStreamID
 
 
 if __name__=="__main__":
@@ -54,4 +70,4 @@ if __name__=="__main__":
         else:
             outputFileID = toil.restart()
 
-        toil.exportFile(outputFileID, "file://" + os.path.abspath(os.path.join(outFileDirectory, "ERR2122556-fifo-in.bam")))
+        toil.exportFile(outputFileID, "file://" + os.path.abspath(os.path.join(outFileDirectory, "ERR2122556-fifo-out.bam")))

@@ -8,10 +8,10 @@ from toil.job import Job
 class SamtoolsRun(Job):
     def __init__(self, id):
         Job.__init__(self, memory="2G", cores=10, disk="10G")
-        self.inputFileID = id
+        self.inputFileName = id
 
-    def writeToPipe(self, fn):
-        with open(self.inputFileID, 'rt') as fi:
+    def writeToPipe(self, fn, fileStore):
+        with open(self.inputFileName, 'rt') as fi:
             fifo = open(fn, 'wt')
             fifo.write(fi.read())
             fifo.close()
@@ -20,7 +20,7 @@ class SamtoolsRun(Job):
         fn = 'tmp'
         os.mkfifo(fn)
 
-        th = threading.Thread(target=self.writeToPipe, args=(fn,))
+        th = threading.Thread(target=self.writeToPipe, args=(fn,fileStore))
         th.start()
 
         with open(fn, 'rt') as fi:
@@ -34,7 +34,10 @@ class SamtoolsRun(Job):
 
 
 if __name__=="__main__":
-    options = Job.Runner.getDefaultOptions("./toilWorkflowRun")
+
+    parser = Job.Runner.getDefaultArgumentParser()
+    options = parser.parse_args(args=["./toilWorkflowRun", "--debugWorker"])
+
     options.logLevel = "DEBUG"
     options.clean = "always"
 
@@ -43,8 +46,8 @@ if __name__=="__main__":
         fileDirectory = os.path.dirname(os.path.abspath(__file__))
 
         if not toil.options.restart:
-            inputFileID = toil.importFile("file://" + os.path.abspath(os.path.join(fileDirectory, "hello_world.txt")))
-            outputFileID = toil.start(SamtoolsRun(inputFileID))
+            inputFileName = os.path.abspath(os.path.join(fileDirectory, "hello_world.txt"))
+            outputFileID = toil.start(SamtoolsRun(inputFileName))
         else:
             outputFileID = toil.restart()
 

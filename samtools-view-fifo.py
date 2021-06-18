@@ -10,10 +10,10 @@ from toil.job import Job
 class SamtoolsRun(Job):
     def __init__(self, id):
         Job.__init__(self,  memory="12G", cores=10, disk="10G")
-        self.inputFileID = id
+        self.inputFileName = id
 
     def writeToPipe(self, fn, fileStore):
-        with fileStore.readGlobalFileStream(self.inputFileID) as fi:
+        with open(self.inputFileName, 'rb') as fi:
             fifo = open(fn, 'wb')
             # FIXME read & write like a stream
             fifo.write(fi.read())
@@ -24,7 +24,7 @@ class SamtoolsRun(Job):
         fin = fileStore.getLocalTempFileName()
         os.mkfifo(fin)
 
-        th = threading.Thread(target=self.writeToPipe, args=(fileStore,))
+        th = threading.Thread(target=self.writeToPipe, args=(fin, fileStore,))
         th.start()
 
         with open(fin, 'rb') as fi:
@@ -37,7 +37,9 @@ class SamtoolsRun(Job):
 
 
 if __name__=="__main__":
-    options = Job.Runner.getDefaultOptions("./toilWorkflowRun")
+    parser = Job.Runner.getDefaultArgumentParser()
+    options = parser.parse_args(args=["./toilWorkflowRun", "--debugWorker"])
+
     options.logLevel = "DEBUG"
     options.clean = "always"
 
@@ -46,8 +48,9 @@ if __name__=="__main__":
         outFileDirectory = os.path.dirname(os.path.abspath(__file__))
 
         if not toil.options.restart:
-            inputFileID = toil.importFile("file://" + os.path.abspath(os.path.join(inFileDirectory, "ERR2122556.sam")))
-            outputFileID = toil.start(SamtoolsRun(inputFileID))
+            # inputFileID = toil.importFile("file://" + os.path.abspath(os.path.join(inFileDirectory, "ERR2122556.sam")))
+            inputFileName = os.path.abspath(os.path.join(inFileDirectory, "ERR2122556.sam"))
+            outputFileID = toil.start(SamtoolsRun(inputFileName))
         else:
             outputFileID = toil.restart()
 

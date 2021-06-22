@@ -1,13 +1,10 @@
 #!/usr/bin cwl-runner
 
-cwlVersion: v1.0
+cwlVersion: v1.2
 class: CommandLineTool
 baseCommand: cat
-requirements:
-  InlineJavascriptRequirement: {}
 
 stdout: $(inputs.output_filename)
-arguments: ["-A"]
 
 inputs:
   input_file:
@@ -17,8 +14,8 @@ inputs:
       position: 1
   output_filename:
     type: string?
-    default: count.txt
+    default: output.txt
 
 outputs:
-  count:
+  out:
     type: stdout

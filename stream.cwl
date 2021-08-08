@@ -4,7 +4,7 @@ cwlVersion: v1.2
 class: CommandLineTool
 baseCommand: cat
 
-stdout: $(inputs.output_filename)
+stdout: output.txt
 
 inputs:
   input_file:
@@ -12,10 +12,8 @@ inputs:
     streamable: true
     inputBinding:
       position: 1
-  output_filename:
-    type: string?
-    default: output.txt
 
 outputs:
   out:
     type: stdout
+    streamable: true
